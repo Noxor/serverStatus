@@ -3,24 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../dist/output.css" rel="stylesheet">
+  <link href="./dist/output.css" rel="stylesheet">
 </head>
 <body class="main">
     <div class="center-container">
-        <img src="../dist/img/block.png" class="h-36 w-36" id="server-icon"/>
+        <img src="./dist/img/block.png" class="h-36 w-36" id="server-icon"/>
         <div class="flex flex-col ">
-            <h1 class="text-7xl font-medium text-white-800 mb-5" id="server-ip">play.myserver.com</h1>
-            <span class="text-gray-300 text-lg mb-3 server-online" id="motd">A beautiful minecraft server</span>
-            <div class=" text-3xl"><span class="font-semibold server-status" id="player-count">00</span> Players Online</div>
+            <h1 class="text-7xl font-medium text-white-800 mb-5" id="server-ip">Enable Java script for this to work</h1>
+            <span class="text-gray-300 text-lg mb-3" id="motd">Loading...</span>
+            <div>
+				<span class=" text-3xl"><span class="font-semibold"><span id="player-count">00</span>/<span id="player-limit">00</span></span> Players Online</span>
+				- as of <span id="last-updated"></span>
+			</div>
+			
         </div>
     </div>
 <script>
-function initServerData(serverIp,serverPort){
+function initServerData(serverIp){
     const serverIpElement = document.getElementById('server-ip');
     serverIpElement.innerHTML = serverIp;
 
-    console.log('https://mcapi.us/server/status?ip='+serverIp+'&port='+serverPort);
-    fetch('https://mcapi.us/server/status?ip='+serverIp+'&port='+serverPort)
+    console.log('https://mcapi.us/server/status?ip='+serverIp);
+    fetch('https://mcapi.us/server/status?ip='+serverIp)
     .then(response => response.json())
     .then(data => handleServerStatus(data));
 
@@ -35,6 +39,12 @@ function initServerData(serverIp,serverPort){
 
         const playerCounter = document.getElementById("player-count");
         playerCounter.innerHTML = data.players.now;
+		
+		const playerLimit = document.getElementById("player-limit");
+        playerLimit.innerHTML = data.players.max;
+		
+		const lastUpdated = document.getElementById("last-updated");
+        lastUpdated.innerHTML = new Date(data.last_updated * 1000).toLocaleString();
 
         const logo = document.getElementById("server-icon");
         logo.src = data.favicon;
@@ -42,7 +52,7 @@ function initServerData(serverIp,serverPort){
 
 }
 
-initServerData("play.dawn-mc.net","25565");
+initServerData("lemon.vaulthunters.gg");
 
 </script>
 
