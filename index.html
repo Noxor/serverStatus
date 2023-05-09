@@ -1,73 +1,155 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="./dist/output.css" rel="stylesheet">
-</head>
-<body class="main">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VH server status</title>
+    <link rel="icon" type="image/x-icon" href="./dist/img/favicon.ico" />
+    <link href="./dist/output.css" rel="stylesheet" />
+    <script src="./dist/scripts/MinecraftColorCodes.min.3.7.js"></script>
+  </head>
+  <body>
     <div class="center-container">
-        <img src="./dist/img/block.png" class="h-36 w-36" id="server-icon"/>
-        <div class="flex flex-col ">
-            <h1 class="text-7xl font-medium text-white-800 mb-5" id="server-ip">Enable Java script for this to work</h1>
-            <span class="text-gray-300 text-lg mb-3" id="motd">Loading...</span>
-			<div class="text-3xl" id="server-offline">Server Offline</div>
-            <div>
-				<span class="text-3xl"><span class="font-semibold"><span id="player-count">00</span>/<span id="player-limit">00</span></span> Players Online</span>
-				- as of <span id="last-updated"></span>
-			</div>
-			<ul id="player-list"></ul>
+      <img
+        src="./dist/img/VaultHunters-Logo2-PERSONAL-USE-ONLY.png"
+        class="server-icon"
+        id="server-icon"
+      />
+      <div class="text-column">
+        <h1 id="server-ip" class="font-medium">
+          Enable Java script for this to work
+        </h1>
+        <div id="loading" hidden>
+          <div class="lds-spinner">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
         </div>
+        <div id="error" class="error-message" hidden>
+          <h3>Could not load server status</h3>
+          <h5>Possible server restart?</h5>
+          <span id="reason"></span>
+        </div>
+        <div id="status-result" hidden>
+          <div id="server-offline" hidden>Offline</div>
+          <div id="motd"></div>
+          <div class="text-big">
+            <span class="font-semibold"
+              ><span id="player-count"></span>/<span id="player-limit"></span
+            ></span>
+            Players Online
+          </div>
+          <div id="last-updated" class="text-small"></div>
+          <div id="player-list" class="player-list"></div>
+        </div>
+      </div>
     </div>
-<script>
-function initServerData(serverIp){
-    const serverIpElement = document.getElementById('server-ip');
-    serverIpElement.innerHTML = serverIp;
+    <script>
+      function initServerData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const serverName = urlParams.get("server");
 
-    console.log('https://mcapi.us/server/status?ip='+serverIp);
-    fetch('https://mcapi.us/server/status?ip='+serverIp)
-    .then(response => response.json())
-    .then(data => handleServerStatus(data));
+        const serverIp = `${serverName ?? 'lemon'}.vaulthunters.gg`;
 
-    function handleServerStatus(data){
-		const motd = document.getElementById("motd");
-        if(data.status=='error'){
-			motd.innerHTML = 'Error loading status';
-            console.log(data.error);
-            return false;
+        const serverIpElement = document.getElementById("server-ip");
+        serverIpElement.innerHTML = serverIp;
+
+        setElementHiddenness("loading", false);
+
+        console.log("https://mcapi.us/server/status?ip=" + serverIp);
+        fetch("https://mcapi.us/server/status?ip=" + serverIp)
+          .then((response) => response.json())
+          .then((data) => handleServerStatus(data))
+          .catch((reason) => handleError(reason));
+      }
+
+      function handleError(data) {
+        setElementHiddenness("loading", true);
+        setElementHiddenness("error", false);
+        console.log(data);
+        const reasonElement = document.getElementById("reason");
+        reasonElement.innerHTML = data;
+      }
+
+      function handleServerStatus(data) {
+        if (data.status != "success") {
+          handleError(data.error);
+          return;
+        }
+        setElementHiddenness("loading", true);
+        setElementHiddenness("status-result", false);
+
+        if (data.online !== true) {
+          setElementHiddenness("server-offline", false);
         }
 
-        motd.innerHTML = data.motd;
+        motd.appendChild(data.motd.replaceColorCodes());
 
         const playerCounter = document.getElementById("player-count");
         playerCounter.innerHTML = data.players.now;
-		
-		const playerLimit = document.getElementById("player-limit");
+
+        const playerLimit = document.getElementById("player-limit");
         playerLimit.innerHTML = data.players.max;
-		
-		const lastUpdated = document.getElementById("last-updated");
-        lastUpdated.innerHTML = new Date(data.last_updated * 1000).toLocaleString();
-		
-		const serverOffline = document.getElementById("server-offline");
-        serverOffline.hidden = data.online;
-		//debugger;
-		const playerList = document.getElementById("player-list");
-        data.players.sample.forEach((item)=>{
-		  let li = document.createElement("li");
-		  li.innerText = item.name;
-		  playerList.appendChild(li);
-		});
 
-        const logo = document.getElementById("server-icon");
-        logo.src = data.favicon;
-    } 
+        const lastUpdated = document.getElementById("last-updated");
+        lastUpdated.innerHTML = new Date(
+          data.last_updated * 1000
+        ).toLocaleString();
 
-}
+        const playerList = document.getElementById("player-list");
+        playerList.innerHTML = "";
+        data.players.sample.forEach((item) => {
+          playerList.innerHTML += generatePlayerHtml(item);
+        });
 
-initServerData("lemon.vaulthunters.gg");
+        if (data.favicon) {
+          const logo = document.getElementById("server-icon");
+          logo.src = data.favicon;
+        }
+      }
 
-</script>
+      function generatePlayerHtml(player) {
+        if (!player || !player.name || !player.id) {
+          return ``;
+        }
 
+        return `<div class="player">
+                    <a href="https://vaulthunters.gg/armory/${removeVault(
+                      player.name
+                    )}" target="_blank">
+                        <img src="https://mc-heads.net/avatar/${player.id}">
+                        <div>
+                            <p class="player-name">${player.name}</p>
+                        </div>
+                    </a>            
+                </div>`;
+      }
 
-</body>
+      function removeVault(name) {
+        let suffix = "(vault)";
+
+        if (name.endsWith(suffix)) {
+          name = name.slice(0, -suffix.length);
+        }
+        return name;
+      }
+
+      function setElementHiddenness(id, hidden) {
+        const element = document.getElementById(id);
+        element.hidden = hidden;
+      }
+
+      initServerData();
+    </script>
+  </body>
 </html>
