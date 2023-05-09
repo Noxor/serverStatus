@@ -217,6 +217,10 @@ a {
   color: rgb(255, 69, 0);
 }
 
+.player-count {
+  margin-top: 1rem;
+}
+
 .player-list {
   margin-top: 2rem;
 }
